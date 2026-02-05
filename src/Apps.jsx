@@ -132,14 +132,35 @@ const AuthenticatedApp = () => {
 };
 
 
+// Error boundary component
+const ErrorBoundary = ({ children }) => {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="text-center p-8">
+        <h1 className="text-2xl font-bold text-slate-900 mb-4">Something went wrong</h1>
+        <p className="text-slate-600 mb-4">The application encountered an error.</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800"
+        >
+          Reload Page
+        </button>
+      </div>
+    </div>
+  );
+};
+
 function App() {
+  console.log('App component rendering...');
 
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NavigationTracker />
-          <AuthenticatedApp />
+          <ErrorBoundary>
+            <AuthenticatedApp />
+          </ErrorBoundary>
         </Router>
         <Toaster />
         <DebugInfo />
