@@ -72,6 +72,6 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "Dashboard",
+    mainPage: "YearSelection",
     Pages: PAGES,
 };

@@ -1,18 +1,27 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { api } from '@/api/supabaseClient';
 import { createPageUrl } from '@/utils';
+import { anonymousSession } from './AnonymousSession';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
+  const [anonymousSessionData, setAnonymousSessionData] = useState(null);
 
   console.log('AuthProvider: Initializing...');
+
+  // Initialize anonymous session on mount
+  useEffect(() => {
+    const session = anonymousSession.init();
+    setAnonymousSessionData(session);
+    console.log('Anonymous session initialized:', session.id);
+  }, []);
 
   const checkAppState = async () => {
     try {
@@ -20,18 +29,26 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       setAuthError(null);
       
-      // Check if user is authenticated
+      // Check if user is authenticated (optional - app works without auth)
       try {
         const currentUser = await api.auth.me();
-        setUser(currentUser);
-        setIsAuthenticated(true);
-        setAppPublicSettings({ id: 'supabase', public_settings: {} });
-        
-        // Log user activity
-        await api.appLogs.logUserInApp();
+        if (currentUser) {
+          setUser(currentUser);
+          setIsAuthenticated(true);
+          setAppPublicSettings({ id: 'supabase', public_settings: {} });
+          
+          // Log user activity
+          await api.appLogs.logUserInApp();
+        } else {
+          // User not authenticated - this is fine, continue with anonymous session
+          setUser(null);
+          setIsAuthenticated(false);
+          setAuthError(null);
+          setAppPublicSettings({ id: 'supabase', public_settings: {} });
+        }
       } catch (authError) {
-        // User is not authenticated - this is normal for Login page
-        console.log('User not authenticated - redirecting to login');
+        // User is not authenticated - this is normal for anonymous usage
+        console.log('User not authenticated - continuing with anonymous session');
         setUser(null);
         setIsAuthenticated(false);
         setAuthError(null);
@@ -39,18 +56,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      
-      // Check if it's an authentication error
-      if (error.message?.includes('User not authenticated') || error.message?.includes('Invalid token')) {
-        // User is not logged in - this is normal for Login page
-        // Don't show error, just set unauthenticated state
-        setUser(null);
-        setIsAuthenticated(false);
-        setAuthError(null);
-      } else {
-        // Other error - show to user
-        setAuthError({ type: 'unknown', message: error.message || 'An unexpected error occurred' });
-      }
+      setAuthError({ type: 'unknown', message: error.message || 'An unexpected error occurred' });
     } finally {
       setIsLoadingPublicSettings(false);
       setIsLoadingAuth(false);
@@ -107,9 +113,10 @@ export const AuthProvider = ({ children }) => {
         setUser(currentUser);
         setIsAuthenticated(true);
         return { success: true };
+      } else {
+        setAuthError({ type: 'auth_failed', message: result.error || 'Sign in failed' });
+        return { success: false, message: result.error || 'Sign in failed' };
       }
-      
-      return { success: false, message: 'Sign in failed' };
     } catch (error) {
       const message = error.message || 'Sign in failed';
       setAuthError({ type: 'auth_failed', message });
@@ -117,24 +124,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithMagicLink = async (email) => {
     try {
       setAuthError(null);
-      const { data, error } = await api.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`
-        }
-      });
+      const result = await api.auth.signInWithMagicLink(email);
       
-      if (error) {
-        setAuthError({ type: 'auth_failed', message: error.message });
-        return { success: false, message: error.message };
-      }
-      
-      return { success: true };
+      return { 
+        success: true, 
+        message: 'Magic link sent! Check your email to continue.' 
+      };
     } catch (error) {
-      const message = error.message || 'Google sign in failed';
+      const message = error.message || 'Failed to send magic link';
       setAuthError({ type: 'auth_failed', message });
       return { success: false, message };
     }
@@ -146,13 +146,14 @@ export const AuthProvider = ({ children }) => {
       const result = await api.auth.signUp(email, password, fullName);
       
       if (result.user) {
-        return { success: true, message: 'Account created successfully! Please check your email to verify.' };
+        return { success: true, message: 'Account created! You can now sign in.' };
+      } else {
+        setAuthError({ type: 'signup_failed', message: result.error || 'Sign up failed' });
+        return { success: false, message: result.error || 'Sign up failed' };
       }
-      
-      return { success: false, message: 'Sign up failed' };
     } catch (error) {
       const message = error.message || 'Sign up failed';
-      setAuthError({ type: 'auth_failed', message });
+      setAuthError({ type: 'signup_failed', message });
       return { success: false, message };
     }
   };
@@ -168,7 +169,7 @@ export const AuthProvider = ({ children }) => {
 
   const navigateToLogin = () => {
     // Don't use window.location.href as it causes full page reload
-    // Instead, the component will handle the navigation
+    // Instead, component will handle the navigation
     console.log('navigateToLogin called - component should handle navigation');
   };
 
@@ -180,11 +181,12 @@ export const AuthProvider = ({ children }) => {
       isLoadingPublicSettings,
       authError,
       appPublicSettings,
+      anonymousSessionData,
       logout,
       navigateToLogin,
       checkAppState,
       signIn,
-      signInWithGoogle,
+      signInWithMagicLink,
       signUp
     }}>
       {children}

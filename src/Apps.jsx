@@ -3,7 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './page.config'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -18,7 +18,6 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
-// Debug component to check environment and database status
 const DebugInfo = () => {
   const [envStatus, setEnvStatus] = React.useState({});
   const [dbStatus, setDbStatus] = React.useState({});
@@ -79,10 +78,9 @@ const DebugInfo = () => {
 };
 
 const AuthenticatedApp = () => {
-  const { user, isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError, anonymousSessionData } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
+  // Show loading spinner while checking app public settings
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -91,23 +89,14 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // If user is not authenticated, redirect to login using React Router
-  if (!isAuthenticated || !user) {
-    console.log('User not authenticated - navigating to login');
-    return <Navigate to="/Login" replace />;
-  }
-
   // Handle authentication errors
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      return <Navigate to="/Login" replace />;
     }
   }
 
-  // Render the main app
+  // Render the main app - no authentication required
   return (
     <Routes>
       <Route path="/" element={
