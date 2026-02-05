@@ -58,8 +58,13 @@ export const AuthProvider = ({ children }) => {
       
       // Check if it's an authentication error
       if (error.message?.includes('User not authenticated') || error.message?.includes('Invalid token')) {
-        setAuthError({ type: 'auth_required', message: 'Please sign in to continue' });
+        // User is not logged in - this is normal for Login page
+        // Don't show error, just set unauthenticated state
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError(null);
       } else {
+        // Other error - show to user
         setAuthError({ type: 'unknown', message: error.message || 'An unexpected error occurred' });
       }
     } finally {
