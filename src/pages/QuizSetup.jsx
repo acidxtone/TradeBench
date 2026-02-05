@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/localClient';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -91,13 +91,13 @@ export default function QuizSetup() {
 
   const [user, setUser] = useState(null);
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    api.auth.me().then(setUser).catch(() => {});
   }, []);
 
   const { data: progress } = useQuery({
     queryKey: ['userProgress'],
     queryFn: async () => {
-      const results = await base44.entities.UserProgress.filter({ created_by: user?.email });
+      const results = await api.entities.UserProgress.filter({ created_by: user?.email });
       return results[0] || null;
     },
     enabled: !!user?.email
@@ -105,7 +105,7 @@ export default function QuizSetup() {
 
   const { data: questions = [] } = useQuery({
     queryKey: ['questions', user?.selected_year],
-    queryFn: () => base44.entities.Question.filter({ year: user?.selected_year || 1 }),
+    queryFn: () => api.entities.Question.filter({ year: user?.selected_year || 1 }),
     enabled: !!user
   });
 

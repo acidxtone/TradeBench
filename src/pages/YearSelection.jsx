@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/localClient';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export default function YearSelection() {
     
     setSaving(true);
     try {
-      await base44.auth.updateMe({ selected_year: selectedYear });
+      await api.auth.updateMe({ selected_year: selectedYear });
       navigate(createPageUrl('Dashboard'));
     } catch (error) {
       console.error('Failed to save year selection:', error);

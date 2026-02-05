@@ -1,78 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { api } from '@/api/localClient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { 
-  ArrowLeft, 
   BookOpen, 
-  Search,
+  Search, 
+  Bookmark, 
+  ArrowLeft,
   Filter,
-  FileText
+  ChevronRight
 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import StudyQuestionCard from '@/components/study/StudyQuestionCard';
+import { motion } from "framer-motion";
 import YearIndicator from '@/components/YearIndicator';
+import YearHeader from '@/components/YearHeader';
+import { BannerAd, InContentAd } from '@/components/ads/AdSense';
 
 export default function Study() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sectionFilter, setSectionFilter] = useState('all');
-  const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [user, setUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSection, setSelectedSection] = useState('all');
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
-  }, []);
+    api.auth.me().then(user => {
+      setUser(user);
+      if (!user.selected_year) {
+        navigate(createPageUrl('YearSelection'));
+      }
+    }).catch(() => {});
+  }, [navigate]);
 
-  const { data: allQuestions = [], isLoading } = useQuery({
-    queryKey: ['questions', user?.selected_year],
-    queryFn: () => base44.entities.Question.filter({ year: user?.selected_year || 1 }),
-    enabled: !!user
+  const { data: progress } = useQuery({
+    queryKey: ['userProgress'],
+    queryFn: async () => {
+      const results = await api.entities.UserProgress.filter({ created_by: user?.email });
+      return results[0] || null;
+    },
+    enabled: !!user?.email
   });
 
-  const sections = [
-    { id: 1, name: "Workplace Safety and Rigging" },
-    { id: 2, name: "Tools, Equipment and Materials" },
-    { id: 3, name: "Metal Fabrication" },
-    { id: 4, name: "Drawings and Specifications" },
-    { id: 5, name: "Calculations and Science" }
-  ];
-
-  const filteredQuestions = allQuestions.filter(q => {
-    const matchesSearch = searchTerm === '' || 
-      q.question_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.explanation?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesSection = sectionFilter === 'all' || 
-      q.section === parseInt(sectionFilter);
-    
-    const matchesDifficulty = difficultyFilter === 'all' || 
-      q.difficulty === difficultyFilter;
-
-    return matchesSearch && matchesSection && matchesDifficulty;
+  const { data: studyGuides = [] } = useQuery({
+    queryKey: ['studyGuides', user?.selected_year],
+    queryFn: async () => {
+      if (!user?.selected_year) return [];
+      const results = await api.entities.StudyGuide.filter({ year: user.selected_year });
+      return results;
+    },
+    enabled: !!user?.selected_year
   });
 
-  const sectionCounts = sections.map(section => ({
-    ...section,
-    count: allQuestions.filter(q => q.section === section.id).length
-  }));
+  const bookmarkMutation = useMutation({
+    mutationFn: async (questionId) => {
+      if (!progress?.id) return;
+      
+      const currentBookmarks = progress?.bookmarked_questions || [];
+      const updatedBookmarks = currentBookmarks.includes(questionId)
+        ? currentBookmarks.filter(id => id !== questionId)
+        : [...currentBookmarks, questionId];
+      
+      await api.entities.UserProgress.update(progress.id, {
+        bookmarked_questions: updatedBookmarks
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['userProgress']);
+    }
+  });
 
-  if (isLoading) {
+  const filteredGuides = studyGuides.filter(guide => 
+    selectedSection === 'all' || guide.section_name.toLowerCase().includes(selectedSection.toLowerCase())
+  );
+
+  const sections = ['all', ...new Set(studyGuides.map(g => g.section_name))];
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Loading study materials...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
         </div>
       </div>
     );
@@ -80,98 +91,61 @@ export default function Study() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <YearHeader />
+      <BannerAd position="top" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-6"
+        >
+          {/* Header */}
           <div className="flex items-center justify-between">
-            <Link to={createPageUrl('Dashboard')} className="inline-flex items-center text-slate-600 hover:text-slate-900">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Link>
-            <div className="flex items-center gap-4">
-              {user?.selected_year && <YearIndicator year={user.selected_year} />}
-              <Link to={createPageUrl('Curriculum')}>
-                <Button variant="outline" size="sm">
-                  <FileText className="h-4 w-4 mr-2" />
-                  View Curriculum
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-slate-600" />
-                <span className="text-sm font-medium text-slate-600">
-                  {filteredQuestions.length} Questions
-                </span>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800">Study Materials</h1>
+              <p className="text-slate-600 mt-1">
+                Comprehensive guides for Year {user.selected_year}
+              </p>
             </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={createPageUrl('Dashboard')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Link>
+            </Button>
           </div>
-        </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Study Materials</h1>
-          <p className="text-slate-600">
-            Review all questions and answers organized by section. Perfect for studying before practice exams.
-          </p>
-        </div>
-
-        {/* Section Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-          {sectionCounts.map(section => (
-            <button
-              key={section.id}
-              onClick={() => setSectionFilter(sectionFilter === section.id.toString() ? 'all' : section.id.toString())}
-              className={`p-3 rounded-lg border-2 transition-all text-left ${
-                sectionFilter === section.id.toString()
-                  ? 'border-slate-800 bg-slate-50'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-slate-500">Section {section.id}</span>
-                <Badge variant="outline" className="text-xs">{section.count}</Badge>
-              </div>
-              <p className="text-xs text-slate-700 font-medium line-clamp-2">{section.name}</p>
-            </button>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <Card className="border-0 shadow-sm mb-6">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search questions or explanations..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={sectionFilter} onValueChange={setSectionFilter}>
-                <SelectTrigger className="w-full md:w-64">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="All Sections" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sections</SelectItem>
+          {/* Filters */}
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search study guides..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
                   {sections.map(section => (
-                    <SelectItem key={section.id} value={section.id.toString()}>
-                      Section {section.id}: {section.name}
-                    </SelectItem>
+                    <Button
+                      key={section}
+                      variant={selectedSection === section ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedSection(section)}
+                      className="capitalize"
+                    >
+                      {section}
+                    </Button>
                   ))}
-                </SelectContent>
-              </Select>
-              <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="All Difficulties" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Difficulties</SelectItem>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
+                </div>
+              </div>
                   <SelectItem value="hard">Hard</SelectItem>
                 </SelectContent>
               </Select>
