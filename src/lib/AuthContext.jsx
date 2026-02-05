@@ -167,7 +167,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    window.location.href = createPageUrl('Login');
+    // Don't use window.location.href as it causes full page reload
+    // Instead, the component will handle the navigation
+    console.log('navigateToLogin called - component should handle navigation');
   };
 
   return (
