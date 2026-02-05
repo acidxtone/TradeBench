@@ -7,6 +7,8 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { supabase } from '@/lib/supabase';
+import React from 'react';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -15,6 +17,66 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+// Debug component to check environment and database status
+const DebugInfo = () => {
+  const [envStatus, setEnvStatus] = React.useState({});
+  const [dbStatus, setDbStatus] = React.useState({});
+
+  React.useEffect(() => {
+    // Check environment variables
+    const envCheck = {
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'SET' : 'NOT SET',
+      supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET',
+      googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET',
+    };
+    setEnvStatus(envCheck);
+
+    // Check database connection
+    const checkDatabase = async () => {
+      try {
+        const { data, error } = await supabase.from('questions').select('count');
+        const { data: guideData, error: guideError } = await supabase.from('study_guides').select('count');
+        
+        setDbStatus({
+          questions: error ? 'ERROR' : `${data?.length || 0} questions`,
+          studyGuides: guideError ? 'ERROR' : `${guideData?.length || 0} study guides`,
+          connection: error || guideError ? 'FAILED' : 'SUCCESS'
+        });
+      } catch (err) {
+        setDbStatus({
+          connection: 'FAILED',
+          error: err.message
+        });
+      }
+    };
+
+    checkDatabase();
+  }, []);
+
+  return (
+    <div className="fixed top-4 right-4 bg-black text-white p-4 rounded-lg text-xs max-w-sm z-50">
+      <h3 className="font-bold mb-2">Debug Info</h3>
+      
+      <div className="mb-3">
+        <h4 className="font-semibold">Environment Variables:</h4>
+        <div className="text-green-400">{envStatus.supabaseUrl}</div>
+        <div className="text-green-400">{envStatus.supabaseKey}</div>
+        <div className="text-green-400">{envStatus.googleClientId}</div>
+      </div>
+      
+      <div>
+        <h4 className="font-semibold">Database Status:</h4>
+        <div className={dbStatus.connection === 'SUCCESS' ? 'text-green-400' : 'text-red-400'}>
+          {dbStatus.connection}
+        </div>
+        <div className="text-blue-400">{dbStatus.questions}</div>
+        <div className="text-blue-400">{dbStatus.studyGuides}</div>
+        {dbStatus.error && <div className="text-red-400">{dbStatus.error}</div>}
+      </div>
+    </div>
+  );
+};
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -74,6 +136,7 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        <DebugInfo />
       </QueryClientProvider>
     </AuthProvider>
   )
