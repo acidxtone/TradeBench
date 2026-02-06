@@ -79,7 +79,7 @@ const sections = [
 ];
 
 export default function QuizSetup() {
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode') || 'quick_quiz';
   
@@ -88,11 +88,6 @@ export default function QuizSetup() {
   const [timed, setTimed] = useState(false);
   const [difficulty, setDifficulty] = useState('mixed');
   const [showExplanations, setShowExplanations] = useState(true);
-
-  const [user, setUser] = useState(null);
-  useEffect(() => {
-    api.auth.me().then(setUser).catch(() => {});
-  }, []);
 
   const { data: progress } = useQuery({
     queryKey: ['userProgress'],

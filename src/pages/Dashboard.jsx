@@ -25,17 +25,14 @@ import YearHeader from '@/components/YearHeader';
 import { BannerAd } from '@/components/ads/AdSense';
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.auth.me().then(user => {
-      setUser(user);
-      if (!user.selected_year) {
-        navigate(createPageUrl('YearSelection'));
-      }
-    }).catch(() => {});
-  }, [navigate]);
+    if (user && !user.selected_year) {
+      navigate(createPageUrl('YearSelection'));
+    }
+  }, [user, navigate]);
 
   const { data: progress } = useQuery({
     queryKey: ['userProgress'],

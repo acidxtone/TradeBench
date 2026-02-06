@@ -35,21 +35,9 @@ export default function Quiz() {
   const difficulty = urlParams.get('difficulty') || 'mixed';
   const showExplanationsMode = urlParams.get('explanations') || 'immediate';
 
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [answers, setAnswers] = useState([]);
-  const [isPaused, setIsPaused] = useState(false);
-  const [showExitDialog, setShowExitDialog] = useState(false);
-  const [quizComplete, setQuizComplete] = useState(false);
-  const [startTime] = useState(Date.now());
-  const [bookmarkedQuestions, setBookmarkedQuestions] = useState([]);
-  const [quizQuestions, setQuizQuestions] = useState([]);
-
-  useEffect(() => {
-    api.auth.me().then(setUser).catch(() => {});
-  }, []);
 
   const { data: allQuestions = [], isLoading } = useQuery({
     queryKey: ['questions', user?.selected_year],

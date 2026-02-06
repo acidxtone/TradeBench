@@ -26,13 +26,9 @@ import { useNavigate } from 'react-router-dom';
 export default function Settings() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [showChangeYear, setShowChangeYear] = useState(false);
   const [selectedNewYear, setSelectedNewYear] = useState(null);
-
-  useEffect(() => {
-    api.auth.me().then(setUser).catch(() => {});
-  }, []);
 
   const { data: progress } = useQuery({
     queryKey: ['userProgress'],

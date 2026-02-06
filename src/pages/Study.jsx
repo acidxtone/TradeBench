@@ -20,20 +20,17 @@ import YearHeader from '@/components/YearHeader';
 import { BannerAd, InContentAd } from '@/components/ads/AdSense';
 
 export default function Study() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSection, setSelectedSection] = useState('all');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    api.auth.me().then(user => {
-      setUser(user);
-      if (!user.selected_year) {
-        navigate(createPageUrl('YearSelection'));
-      }
-    }).catch(() => {});
-  }, [navigate]);
+    if (user && !user.selected_year) {
+      navigate(createPageUrl('YearSelection'));
+    }
+  }, [user, navigate]);
 
   const { data: progress } = useQuery({
     queryKey: ['userProgress'],
