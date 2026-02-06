@@ -11,7 +11,6 @@ import {
   Search, 
   Bookmark, 
   ArrowLeft,
-  Filter,
   ChevronRight
 } from "lucide-react";
 import { motion } from "framer-motion";

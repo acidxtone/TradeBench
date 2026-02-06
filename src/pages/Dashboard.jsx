@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { api } from '@/api/localClient';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  GraduationCap, 
   Target, 
   Zap, 
   Calculator, 
@@ -20,7 +19,6 @@ import {
   FileText
 } from "lucide-react";
 import { motion } from "framer-motion";
-import YearIndicator from '@/components/YearIndicator';
 import YearHeader from '@/components/YearHeader';
 import { BannerAd } from '@/components/ads/AdSense';
 

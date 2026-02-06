@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { GraduationCap, CheckCircle, Mail, Save } from "lucide-react";
+import { GraduationCap, CheckCircle, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from '@/lib/AuthContext';
 import { anonymousSession } from '@/lib/AnonymousSession';
