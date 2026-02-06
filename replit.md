@@ -54,8 +54,12 @@ scripts/         - Data generation and migration scripts
 - `POST /api/auth/login` - Sign in with email and password
 - `GET /api/auth/user` - Get current authenticated user
 - `POST /api/auth/logout` - End session
+- `POST /api/auth/forgot-password/verify-email` - Step 1: verify email exists, returns security question
+- `POST /api/auth/forgot-password/verify-answer` - Step 2: verify security answer, returns reset token
+- `POST /api/auth/forgot-password/reset` - Step 3: set new password with valid reset token
 - Sessions stored in PostgreSQL via connect-pg-simple
 - Passwords hashed with bcrypt (12 salt rounds)
+- Security answers hashed with bcrypt (case-insensitive comparison)
 - Secure HTTP-only cookies with 7-day expiry
 
 ## Running
@@ -64,6 +68,8 @@ scripts/         - Data generation and migration scripts
 - `npm run db:push` - Push Drizzle schema to database
 
 ## Recent Changes
+- 2026-02-06: Added forgot password flow with security questions (3-step: email → answer → new password)
+- 2026-02-06: Added security_question and security_answer columns to users table
 - 2026-02-06: Replaced Replit Auth with custom email/password authentication (bcrypt + sessions)
 - 2026-02-06: Created AuthPage with sign in/sign up forms matching app design
 - 2026-02-06: Added password_hash and full_name columns to users table

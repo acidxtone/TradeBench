@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   fullName: varchar("full_name"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  securityQuestion: varchar("security_question"),
+  securityAnswer: varchar("security_answer"),
   profileImageUrl: varchar("profile_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
