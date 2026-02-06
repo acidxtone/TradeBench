@@ -155,7 +155,7 @@ export default function Dashboard() {
             className="text-center"
           >
             <h1 className="text-4xl font-bold text-slate-900 mb-4">
-              Welcome back, {user?.email?.split('@')[0]}!
+              Welcome back, {user?.full_name || user?.first_name || user?.email?.split('@')[0]}!
             </h1>
             <p className="text-lg text-slate-600">
               Ready to continue your Steamfitter/Pipefitter journey?
