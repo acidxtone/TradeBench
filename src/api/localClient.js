@@ -8,6 +8,10 @@ const STORAGE_KEYS = {
   userProgress: 'tradebench_user_progress',
 };
 
+function progressKey(year) {
+  return year ? `tradebench_user_progress_y${year}` : STORAGE_KEYS.userProgress;
+}
+
 const GUEST_USER_EMAIL = 'guest@local';
 
 let questionsCache = null;
@@ -66,6 +70,9 @@ const auth = {
   logout() {
     localStorage.removeItem(STORAGE_KEYS.selectedYear);
     localStorage.removeItem(STORAGE_KEYS.userProgress);
+    for (let y = 1; y <= 4; y++) {
+      localStorage.removeItem(progressKey(y));
+    }
   },
 
   redirectToLogin() {},
@@ -83,8 +90,9 @@ const entities = {
   },
 
   UserProgress: {
-    async filter({ created_by }) {
-      const raw = localStorage.getItem(STORAGE_KEYS.userProgress);
+    async filter({ created_by, year }) {
+      const key = progressKey(year);
+      const raw = localStorage.getItem(key);
       if (!raw) return [];
       try {
         const data = JSON.parse(raw);
@@ -98,26 +106,31 @@ const entities = {
     async create(payload) {
       const id = `local-${Date.now()}`;
       const record = { id, created_by: GUEST_USER_EMAIL, ...payload };
-      localStorage.setItem(STORAGE_KEYS.userProgress, JSON.stringify(record));
+      const key = progressKey(payload.year);
+      localStorage.setItem(key, JSON.stringify(record));
       return record;
     },
 
     async update(id, payload) {
-      const raw = localStorage.getItem(STORAGE_KEYS.userProgress);
+      const year = payload._year;
+      delete payload._year;
+      const key = progressKey(year);
+      const raw = localStorage.getItem(key);
       if (!raw) return null;
       try {
         const record = JSON.parse(raw);
         if (record.id !== id) return record;
         const updated = { ...record, ...payload };
-        localStorage.setItem(STORAGE_KEYS.userProgress, JSON.stringify(updated));
+        localStorage.setItem(key, JSON.stringify(updated));
         return updated;
       } catch {
         return null;
       }
     },
 
-    async delete() {
-      localStorage.removeItem(STORAGE_KEYS.userProgress);
+    async delete(id, year) {
+      const key = progressKey(year);
+      localStorage.removeItem(key);
     },
   },
 };

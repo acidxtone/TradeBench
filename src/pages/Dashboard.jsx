@@ -33,12 +33,12 @@ export default function Dashboard() {
   }, [user, navigate]);
 
   const { data: progress } = useQuery({
-    queryKey: ['userProgress'],
+    queryKey: ['userProgress', user?.selected_year],
     queryFn: async () => {
-      const results = await api.entities.UserProgress.filter({ created_by: user?.email });
+      const results = await api.entities.UserProgress.filter({ created_by: user?.email, year: user?.selected_year });
       return results[0] || null;
     },
-    enabled: !!user?.email
+    enabled: !!user?.email && !!user?.selected_year
   });
 
   const { data: questions = [] } = useQuery({

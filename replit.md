@@ -76,7 +76,16 @@ scripts/         - Data generation and migration scripts
 - `npm run build` - Build frontend for production
 - `npm run db:push` - Push Drizzle schema to database
 
+## Progress Tracking
+- Progress (scores, bookmarks, weak areas, streaks) is stored **per year** using year-specific localStorage keys
+- Switching years preserves all data — each year has independent progress
+- localClient.js uses `tradebench_user_progress_y{N}` keys (e.g. `tradebench_user_progress_y1`)
+- All progress queries include year in the queryKey: `['userProgress', selected_year]`
+- Settings "Reset Progress" only resets the current year
+
 ## Recent Changes
+- 2026-02-06: Implemented per-year progress tracking — Exam Readiness, stats, bookmarks, weak areas all tracked independently per year
+- 2026-02-06: Fixed quiz mode names alignment (Dashboard → QuizSetup → Quiz) and added missing useNavigate
 - 2026-02-06: Added server-side year persistence (selected_year column in users table, PATCH /api/auth/user endpoint)
 - 2026-02-06: Moved YearHeader to App.jsx LayoutWrapper for consistent display on all authenticated pages
 - 2026-02-06: AuthPage now routes to YearSelection (first-time) or Dashboard (returning) after login/signup

@@ -55,12 +55,12 @@ export default function Quiz() {
   });
 
   const { data: progress } = useQuery({
-    queryKey: ['userProgress'],
+    queryKey: ['userProgress', user?.selected_year],
     queryFn: async () => {
-      const results = await api.entities.UserProgress.filter({ created_by: user?.email });
+      const results = await api.entities.UserProgress.filter({ created_by: user?.email, year: user?.selected_year });
       return results[0] || null;
     },
-    enabled: !!user?.email
+    enabled: !!user?.email && !!user?.selected_year
   });
 
   // Select questions based on mode
@@ -169,14 +169,15 @@ export default function Quiz() {
         last_study_date: today
       };
 
+      const year = user?.selected_year;
       if (existing?.id) {
-        await api.entities.UserProgress.update(existing.id, progressData);
+        await api.entities.UserProgress.update(existing.id, { ...progressData, _year: year });
       } else {
-        await api.entities.UserProgress.create(progressData);
+        await api.entities.UserProgress.create({ ...progressData, year });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProgress']);
+      queryClient.invalidateQueries(['userProgress', user?.selected_year]);
     }
   });
 

@@ -32,12 +32,12 @@ export default function Study() {
   }, [user, navigate]);
 
   const { data: progress } = useQuery({
-    queryKey: ['userProgress'],
+    queryKey: ['userProgress', user?.selected_year],
     queryFn: async () => {
-      const results = await api.entities.UserProgress.filter({ created_by: user?.email });
+      const results = await api.entities.UserProgress.filter({ created_by: user?.email, year: user?.selected_year });
       return results[0] || null;
     },
-    enabled: !!user?.email
+    enabled: !!user?.email && !!user?.selected_year
   });
 
   const { data: studyGuides = [] } = useQuery({
@@ -66,16 +66,18 @@ export default function Study() {
     mutationFn: async ({ questionId, bookmarked }) => {
       if (bookmarked) {
         await api.entities.UserProgress.update(progress.id, {
-          bookmarked_questions: [...(progress.bookmarked_questions || []), questionId]
+          bookmarked_questions: [...(progress.bookmarked_questions || []), questionId],
+          _year: user?.selected_year
         });
       } else {
         await api.entities.UserProgress.update(progress.id, {
-          bookmarked_questions: progress.bookmarked_questions?.filter(id => id !== questionId) || []
+          bookmarked_questions: progress.bookmarked_questions?.filter(id => id !== questionId) || [],
+          _year: user?.selected_year
         });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProgress']);
+      queryClient.invalidateQueries(['userProgress', user?.selected_year]);
     }
   });
 
