@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/localClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -48,19 +48,19 @@ export default function Quiz() {
   const [quizQuestions, setQuizQuestions] = useState([]);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    api.auth.me().then(setUser).catch(() => {});
   }, []);
 
   const { data: allQuestions = [], isLoading } = useQuery({
     queryKey: ['questions', user?.selected_year],
-    queryFn: () => base44.entities.Question.filter({ year: user?.selected_year || 1 }),
+    queryFn: () => api.entities.Question.filter({ year: user?.selected_year || 1 }),
     enabled: !!user
   });
 
   const { data: progress } = useQuery({
     queryKey: ['userProgress'],
     queryFn: async () => {
-      const results = await base44.entities.UserProgress.filter({ created_by: user?.email });
+      const results = await api.entities.UserProgress.filter({ created_by: user?.email });
       return results[0] || null;
     },
     enabled: !!user?.email
@@ -173,9 +173,9 @@ export default function Quiz() {
       };
 
       if (existing?.id) {
-        await base44.entities.UserProgress.update(existing.id, progressData);
+        await api.entities.UserProgress.update(existing.id, progressData);
       } else {
-        await base44.entities.UserProgress.create(progressData);
+        await api.entities.UserProgress.create(progressData);
       }
     },
     onSuccess: () => {

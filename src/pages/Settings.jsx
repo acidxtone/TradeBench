@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/localClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -31,13 +31,13 @@ export default function Settings() {
   const [selectedNewYear, setSelectedNewYear] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    api.auth.me().then(setUser).catch(() => {});
   }, []);
 
   const { data: progress } = useQuery({
     queryKey: ['userProgress'],
     queryFn: async () => {
-      const results = await base44.entities.UserProgress.filter({ created_by: user?.email });
+      const results = await api.entities.UserProgress.filter({ created_by: user?.email });
       return results[0] || null;
     },
     enabled: !!user?.email
@@ -46,7 +46,7 @@ export default function Settings() {
   const resetProgressMutation = useMutation({
     mutationFn: async () => {
       if (progress?.id) {
-        await base44.entities.UserProgress.delete(progress.id);
+        await api.entities.UserProgress.delete(progress.id);
       }
     },
     onSuccess: () => {
@@ -58,7 +58,7 @@ export default function Settings() {
   const clearBookmarksMutation = useMutation({
     mutationFn: async () => {
       if (progress?.id) {
-        await base44.entities.UserProgress.update(progress.id, {
+        await api.entities.UserProgress.update(progress.id, {
           bookmarked_questions: []
         });
       }
@@ -72,7 +72,7 @@ export default function Settings() {
   const clearWeakAreasMutation = useMutation({
     mutationFn: async () => {
       if (progress?.id) {
-        await base44.entities.UserProgress.update(progress.id, {
+        await api.entities.UserProgress.update(progress.id, {
           weak_questions: []
         });
       }
@@ -86,9 +86,9 @@ export default function Settings() {
   const changeYearMutation = useMutation({
     mutationFn: async (newYear) => {
       if (progress?.id) {
-        await base44.entities.UserProgress.delete(progress.id);
+        await api.entities.UserProgress.delete(progress.id);
       }
-      await base44.auth.updateMe({ selected_year: newYear });
+      await api.auth.updateMe({ selected_year: newYear });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['userProgress']);
@@ -100,7 +100,7 @@ export default function Settings() {
   });
 
   const handleLogout = () => {
-    base44.auth.logout();
+    api.auth.logout();
   };
 
   return (
