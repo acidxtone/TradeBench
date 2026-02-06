@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, Target, Zap, CheckCircle, ArrowRight } from "lucide-react";
@@ -14,12 +15,12 @@ export default function LandingPage() {
             </div>
             <span className="text-xl font-bold text-slate-900">TradeBench</span>
           </div>
-          <a href="/api/login">
+          <Link to="/auth">
             <Button className="bg-blue-600 hover:bg-blue-700">
               Sign In
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
-          </a>
+          </Link>
         </div>
       </nav>
 
@@ -33,12 +34,12 @@ export default function LandingPage() {
             The ultimate quiz and study platform for apprenticeship training. Practice questions, track your progress, and prepare with confidence.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <a href="/api/login">
+            <Link to="/auth">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-6 w-full sm:w-auto">
                 Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-            </a>
+            </Link>
           </div>
           <div className="flex items-center justify-center gap-6 text-sm text-slate-500">
             <span className="flex items-center gap-1.5">

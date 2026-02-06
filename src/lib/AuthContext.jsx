@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext();
 
@@ -10,11 +10,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
-  const [appPublicSettings] = useState({ id: 'replit', public_settings: {} });
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       setIsLoadingAuth(true);
       const response = await fetch('/api/auth/user', { credentials: 'include' });
@@ -36,7 +34,7 @@ export const AuthProvider = ({ children }) => {
       setUser({
         id: userData.id,
         email: userData.email,
-        full_name: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
+        full_name: userData.fullName || [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email,
         first_name: userData.firstName,
         last_name: userData.lastName,
         profile_image_url: userData.profileImageUrl,
@@ -53,11 +51,63 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsLoadingAuth(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUser();
-  }, []);
+  }, [fetchUser]);
+
+  const signIn = async (email, password) => {
+    try {
+      setAuthError(null);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAuthError({ type: 'auth_failed', message: data.message });
+        return { success: false, message: data.message };
+      }
+
+      await fetchUser();
+      return { success: true };
+    } catch (error) {
+      const message = error.message || 'Sign in failed';
+      setAuthError({ type: 'auth_failed', message });
+      return { success: false, message };
+    }
+  };
+
+  const signUp = async (email, password, fullName) => {
+    try {
+      setAuthError(null);
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password, fullName }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAuthError({ type: 'signup_failed', message: data.message });
+        return { success: false, message: data.message };
+      }
+
+      await fetchUser();
+      return { success: true };
+    } catch (error) {
+      const message = error.message || 'Sign up failed';
+      setAuthError({ type: 'signup_failed', message });
+      return { success: false, message };
+    }
+  };
 
   const updateMe = async (data) => {
     try {
@@ -67,31 +117,35 @@ export const AuthProvider = ({ children }) => {
       setUser(prev => prev ? { ...prev, ...data } : prev);
       return { success: true };
     } catch (error) {
-      console.error('Update profile failed:', error);
       return { success: false, message: error.message };
     }
   };
 
-  const logout = () => {
-    window.location.href = '/api/logout';
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (_) {}
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem(STORAGE_KEYS.selectedYear);
   };
 
-  const navigateToLogin = () => {
-    window.location.href = '/api/login';
-  };
+  const navigateToLogin = () => {};
 
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated,
       isLoadingAuth,
-      isLoadingPublicSettings,
+      isLoadingPublicSettings: false,
       authError,
-      appPublicSettings,
+      appPublicSettings: { id: 'custom', public_settings: {} },
       anonymousSessionData: null,
       logout,
       navigateToLogin,
       checkAppState: fetchUser,
+      signIn,
+      signUp,
       updateMe,
     }}>
       {children}

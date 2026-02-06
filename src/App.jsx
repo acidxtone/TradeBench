@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import React from 'react';
 import Dashboard from '@/pages/Dashboard';
 import LandingPage from '@/pages/LandingPage';
+import AuthPage from '@/pages/AuthPage';
 
 const { Pages } = pagesConfig;
 
@@ -29,7 +30,12 @@ const AuthenticatedApp = () => {
   }
 
   if (!isAuthenticated) {
-    return <LandingPage />;
+    return (
+      <Routes>
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="*" element={<LandingPage />} />
+      </Routes>
+    );
   }
 
   return (
