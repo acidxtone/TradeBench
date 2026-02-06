@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/api/localClient';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
