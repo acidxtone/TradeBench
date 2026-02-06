@@ -143,18 +143,11 @@ function App() {
   console.log('App component rendering...');
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <NavigationTracker />
-          <ErrorBoundary>
-            <AuthenticatedApp />
-          </ErrorBoundary>
-        </Router>
-        <Toaster />
-        <DebugInfo />
-      </QueryClientProvider>
-    </AuthProvider>
+    <div>
+      <h1>Testing App Loading</h1>
+      <p>If you see this, basic React works</p>
+      <DebugInfo />
+    </div>
   )
 }
 
