@@ -458,3 +458,9 @@ export const api = {
   appLogs,
   studyGuides,
 };
+
+// Export supabase client for direct access if needed
+export { supabase };
+
+// Export default for compatibility
+export default api;
