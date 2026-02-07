@@ -1,8 +1,12 @@
 const auth = {
   async me() {
-    const res = await fetch('/api/auth/user', { credentials: 'include' });
-    if (!res.ok) throw new Error('Not authenticated');
-    return res.json();
+    try {
+      const res = await fetch('/api/auth/user', { credentials: 'include' });
+      if (!res.ok) return null;
+      return res.json();
+    } catch {
+      return null;
+    }
   },
 
   async updateMe(data) {
@@ -17,7 +21,11 @@ const auth = {
   },
 
   async logout() {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } finally {
+      window.location.href = '/auth';
+    }
   },
 
   redirectToLogin() {
@@ -31,9 +39,13 @@ const entities = {
       const params = new URLSearchParams();
       if (year != null) params.set('year', String(year));
       if (section != null) params.set('section', String(section));
-      const res = await fetch(`/api/questions?${params.toString()}`);
-      if (!res.ok) return [];
-      return res.json();
+      try {
+        const res = await fetch(`/api/questions?${params.toString()}`);
+        if (!res.ok) return [];
+        return res.json();
+      } catch {
+        return [];
+      }
     },
   },
 
@@ -48,6 +60,17 @@ const entities = {
         return [data];
       } catch {
         return [];
+      }
+    },
+
+    async get(userId, year) {
+      if (!year) return null;
+      try {
+        const res = await fetch(`/api/user-progress?year=${year}`, { credentials: 'include' });
+        if (!res.ok) return null;
+        return res.json();
+      } catch {
+        return null;
       }
     },
 
