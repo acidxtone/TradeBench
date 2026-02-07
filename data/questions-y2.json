@@ -10,8 +10,8 @@
     "option_b": "To serve as the designated attendant outside the confined space",
     "option_c": "To perform the work and maintain communication with the attendant",
     "option_d": "To complete all required documentation before entering",
-    "correct_answer": "B",
-    "explanation": "The journeyman working inside the confined space must be able to focus on the work while the attendant monitors conditions and maintains safety. The attendant's role is specifically to provide emergency assistance and ensure proper ventilation, making option B the correct answer for the worker's primary responsibility.",
+    "correct_answer": "C",
+    "explanation": "When a journeyman is working inside a confined space, their primary responsibility is to perform the work while maintaining communication with the attendant. The attendant (not the worker) monitors conditions and ensures safety. Option C correctly identifies the worker's responsibility inside the space.",
     "reference": "AIT Period 2 Curriculum"
   },
   {
@@ -25,8 +25,8 @@
     "option_b": "Ordinary combustibles like wood, paper, or cloth",
     "option_c": "Flammable liquids such as gasoline or oil",
     "option_d": "Combustible metals like magnesium or titanium",
-    "correct_answer": "A",
-    "explanation": "Class A fire extinguishers are specifically designed for electrical fires and use non-conductive extinguishing agents. Using water-based extinguishers (Class B) on electrical fires can cause electrocution, while Class A extinguishers use dry chemical agents safe for electrical equipment.",
+    "correct_answer": "B",
+    "explanation": "Class A fire extinguishers are specifically designed for ordinary combustibles like wood, paper, and cloth. They use water-based extinguishing agents that are effective on these materials but should NOT be used on electrical fires (Class C) or flammable liquids (Class B).",
     "reference": "AIT Period 2 Curriculum"
   },
   {
