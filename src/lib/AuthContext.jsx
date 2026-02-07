@@ -11,32 +11,51 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = useCallback(async () => {
     try {
       setIsLoadingAuth(true);
-      const response = await fetch('/api/auth/user', { credentials: 'include' });
-
-      if (response.status === 401) {
+      
+      // Get current session from Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
         setUser(null);
         setIsAuthenticated(false);
         setAuthError(null);
         return null;
       }
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user');
+      
+      if (!session?.user) {
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError(null);
+        return null;
       }
-
-      const userData = await response.json();
-
+      
+      // Get user profile from database
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('email', session.user.email)
+        .single();
+        
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError(null);
+        return null;
+      }
+      
       const userObj = {
-        id: userData.id,
-        email: userData.email,
-        full_name: userData.fullName || [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email,
-        first_name: userData.firstName,
-        last_name: userData.lastName,
-        profile_image_url: userData.profileImageUrl,
-        selected_year: userData.selectedYear || null,
+        id: profileData.id,
+        email: session.user.email,
+        full_name: profileData.full_name || [profileData.first_name, profileData.last_name].filter(Boolean).join(' ') || session.user.email,
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        profile_image_url: profileData.profile_image_url,
+        selected_year: profileData.selected_year || null,
         role: 'user',
       };
-
+      
       setUser(userObj);
       setIsAuthenticated(true);
       setAuthError(null);
@@ -59,21 +78,55 @@ export const AuthProvider = ({ children }) => {
   const signIn = async (email, password) => {
     try {
       setAuthError(null);
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setAuthError({ type: 'auth_failed', message: data.message });
-        return { success: false, message: data.message };
+      
+      if (error) {
+        setAuthError({ type: 'auth_failed', message: error.message });
+        return { success: false, message: error.message };
       }
-
-      const userObj = await fetchUser();
+      
+      if (!data.user) {
+        setAuthError({ type: 'auth_failed', message: 'Login failed' });
+        return { success: false, message: 'Login failed' };
+      }
+      
+      // Get or create user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .upsert({
+          id: data.user.id,
+          email: data.user.email,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'merge'
+        })
+        .select()
+        .single();
+        
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        setAuthError({ type: 'profile_failed', message: profileError.message });
+        return { success: false, message: profileError.message };
+      }
+      
+      const userObj = {
+        id: profileData.id,
+        email: data.user.email,
+        full_name: profileData.full_name || data.user.email,
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        profile_image_url: profileData.profile_image_url,
+        selected_year: profileData.selected_year || null,
+        role: 'user',
+      };
+      
+      setUser(userObj);
+      setIsAuthenticated(true);
+      setAuthError(null);
       return { success: true, user: userObj };
     } catch (error) {
       const message = error.message || 'Sign in failed';
@@ -85,21 +138,61 @@ export const AuthProvider = ({ children }) => {
   const signUp = async (email, password, fullName, securityQuestion, securityAnswer) => {
     try {
       setAuthError(null);
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password, fullName, securityQuestion, securityAnswer }),
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            security_question: securityQuestion,
+            security_answer: securityAnswer
+          }
+        }
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setAuthError({ type: 'signup_failed', message: data.message });
-        return { success: false, message: data.message };
+      
+      if (error) {
+        setAuthError({ type: 'signup_failed', message: error.message });
+        return { success: false, message: error.message };
       }
-
-      const userObj = await fetchUser();
+      
+      if (!data.user) {
+        setAuthError({ type: 'signup_failed', message: 'Registration failed' });
+        return { success: false, message: 'Registration failed' };
+      }
+      
+      // Create user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: data.user.id,
+          email: data.user.email,
+          full_name: fullName,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        setAuthError({ type: 'profile_failed', message: profileError.message });
+        return { success: false, message: profileError.message };
+      }
+      
+      const userObj = {
+        id: profileData.id,
+        email: data.user.email,
+        full_name: fullName,
+        first_name: fullName.split(' ')[0] || '',
+        last_name: fullName.split(' ').slice(1).join(' ') || '',
+        profile_image_url: profileData.profile_image_url,
+        selected_year: profileData.selected_year || null,
+        role: 'user',
+      };
+      
+      setUser(userObj);
+      setIsAuthenticated(true);
+      setAuthError(null);
       return { success: true, user: userObj };
     } catch (error) {
       const message = error.message || 'Sign up failed';
@@ -108,30 +201,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setIsAuthenticated(false);
+      setAuthError(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
   const updateMe = async (data) => {
     try {
-      const response = await fetch('/api/auth/user', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          selectedYear: data.selected_year,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update user');
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ 
+          selected_year: data.selected_year,
+          updated_at: new Date().toISOString()
+        })
+        .eq('email', user?.email);
+        
+      if (error) {
+        console.error('Profile update error:', error);
+        return { success: false, message: error.message };
       }
-
-      const userData = await response.json();
-
-      setUser(prev => prev ? {
+      
+      // Update local user state
+      setUser(prev => ({
         ...prev,
-        selected_year: userData.selectedYear || prev.selected_year,
-      } : prev);
-
+        selected_year: data.selected_year
+      }));
+      
       return { success: true };
     } catch (error) {
+      console.error('Update failed:', error);
       return { success: false, message: error.message };
     }
   };
