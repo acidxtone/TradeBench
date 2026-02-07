@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { api } from '@/api/localClient';
+import { api } from '@/api/supabaseDataClient';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -33,12 +33,13 @@ export default function Dashboard() {
   }, [user, navigate]);
 
   const { data: progress } = useQuery({
-    queryKey: ['userProgress', user?.selected_year],
+    queryKey: ['userProgress', user?.id, user?.selected_year],
     queryFn: async () => {
-      const results = await api.entities.UserProgress.filter({ created_by: user?.email, year: user?.selected_year });
-      return results[0] || null;
+      if (!user?.id || !user?.selected_year) return null;
+      const result = await api.userProgress.get(user.id, user.selected_year);
+      return result;
     },
-    enabled: !!user?.email && !!user?.selected_year
+    enabled: !!user?.id && !!user?.selected_year
   });
 
   const { data: questions = [] } = useQuery({

@@ -17,17 +17,17 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 // Data file paths
 const DATA_DIR = path.join(__dirname, '../data');
 const QUESTION_FILES = [
-  'questions-year-1.json',
-  'questions-year-2.json', 
-  'questions-year-3.json',
-  'questions-year-4.json',
+  'questions-y1.json',
+  'questions-y2.json', 
+  'questions-y3.json',
+  'questions-y4.json',
   'questions-massive-comprehensive.json'
 ];
 const STUDY_GUIDE_FILES = [
-  'study-guides-year-1.json',
-  'study-guides-year-2.json',
-  'study-guides-year-3.json', 
-  'study-guides-year-4.json',
+  'study-guides-y1.json',
+  'study-guides-y2.json',
+  'study-guides-y3.json', 
+  'study-guides-y4.json',
   'study-guides-massive-comprehensive.json'
 ];
 

@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
       
       // Get user profile from database
       const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('*')
         .eq('email', session.user.email)
         .single();
@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }) => {
       
       // Get or create user profile
       const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .upsert({
           id: data.user.id,
           email: data.user.email,
@@ -163,7 +163,7 @@ export const AuthProvider = ({ children }) => {
       
       // Create user profile
       const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .insert({
           id: data.user.id,
           email: data.user.email,
@@ -215,7 +215,7 @@ export const AuthProvider = ({ children }) => {
   const updateMe = async (data) => {
     try {
       const { error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .update({ 
           selected_year: data.selected_year,
           updated_at: new Date().toISOString()
