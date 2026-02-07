@@ -11,51 +11,28 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = useCallback(async () => {
     try {
       setIsLoadingAuth(true);
-      
-      // Get current session from Supabase
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
+
+      const res = await fetch('/api/auth/user', { credentials: 'include' });
+
+      if (!res.ok) {
         setUser(null);
         setIsAuthenticated(false);
         setAuthError(null);
         return null;
       }
-      
-      if (!session?.user) {
-        setUser(null);
-        setIsAuthenticated(false);
-        setAuthError(null);
-        return null;
-      }
-      
-      // Get user profile from database
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', session.user.email)
-        .single();
-        
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-        setUser(null);
-        setIsAuthenticated(false);
-        setAuthError(null);
-        return null;
-      }
-      
+
+      const data = await res.json();
+
       const userObj = {
-        id: profileData.id,
-        email: session.user.email,
-        full_name: profileData.full_name || [profileData.first_name, profileData.last_name].filter(Boolean).join(' ') || session.user.email,
-        first_name: profileData.first_name,
-        last_name: profileData.last_name,
-        profile_image_url: profileData.profile_image_url,
-        selected_year: profileData.selected_year || null,
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name || data.email,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        selected_year: data.selected_year || null,
         role: 'user',
       };
-      
+
       setUser(userObj);
       setIsAuthenticated(true);
       setAuthError(null);
@@ -78,52 +55,31 @@ export const AuthProvider = ({ children }) => {
   const signIn = async (email, password) => {
     try {
       setAuthError(null);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
       });
-      
-      if (error) {
-        setAuthError({ type: 'auth_failed', message: error.message });
-        return { success: false, message: error.message };
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAuthError({ type: 'auth_failed', message: data.message });
+        return { success: false, message: data.message };
       }
-      
-      if (!data.user) {
-        setAuthError({ type: 'auth_failed', message: 'Login failed' });
-        return { success: false, message: 'Login failed' };
-      }
-      
-      // Get or create user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: data.user.id,
-          email: data.user.email,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'merge'
-        })
-        .select()
-        .single();
-        
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        setAuthError({ type: 'profile_failed', message: profileError.message });
-        return { success: false, message: profileError.message };
-      }
-      
+
       const userObj = {
-        id: profileData.id,
-        email: data.user.email,
-        full_name: profileData.full_name || data.user.email,
-        first_name: profileData.first_name,
-        last_name: profileData.last_name,
-        profile_image_url: profileData.profile_image_url,
-        selected_year: profileData.selected_year || null,
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name || data.email,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        selected_year: data.selected_year || null,
         role: 'user',
       };
-      
+
       setUser(userObj);
       setIsAuthenticated(true);
       setAuthError(null);
@@ -138,58 +94,37 @@ export const AuthProvider = ({ children }) => {
   const signUp = async (email, password, fullName, securityQuestion, securityAnswer) => {
     try {
       setAuthError(null);
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            security_question: securityQuestion,
-            security_answer: securityAnswer
-          }
-        }
-      });
-      
-      if (error) {
-        setAuthError({ type: 'signup_failed', message: error.message });
-        return { success: false, message: error.message };
-      }
-      
-      if (!data.user) {
-        setAuthError({ type: 'signup_failed', message: 'Registration failed' });
-        return { success: false, message: 'Registration failed' };
-      }
-      
-      // Create user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: data.user.email,
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email,
+          password,
           full_name: fullName,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        setAuthError({ type: 'profile_failed', message: profileError.message });
-        return { success: false, message: profileError.message };
+          security_question: securityQuestion,
+          security_answer: securityAnswer,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAuthError({ type: 'signup_failed', message: data.message });
+        return { success: false, message: data.message };
       }
-      
+
       const userObj = {
-        id: profileData.id,
-        email: data.user.email,
-        full_name: fullName,
-        first_name: fullName.split(' ')[0] || '',
-        last_name: fullName.split(' ').slice(1).join(' ') || '',
-        profile_image_url: profileData.profile_image_url,
-        selected_year: profileData.selected_year || null,
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name || data.email,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        selected_year: data.selected_year || null,
         role: 'user',
       };
-      
+
       setUser(userObj);
       setIsAuthenticated(true);
       setAuthError(null);
@@ -203,36 +138,33 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setIsAuthenticated(false);
-      setAuthError(null);
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (_) {}
+    setUser(null);
+    setIsAuthenticated(false);
+    setAuthError(null);
   };
 
   const updateMe = async (data) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          selected_year: data.selected_year,
-          updated_at: new Date().toISOString()
-        })
-        .eq('email', user?.email);
-        
-      if (error) {
-        console.error('Profile update error:', error);
-        return { success: false, message: error.message };
+      const res = await fetch('/api/auth/user', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        return { success: false, message: err.message };
       }
-      
-      // Update local user state
+
+      const updated = await res.json();
       setUser(prev => ({
         ...prev,
-        selected_year: data.selected_year
+        selected_year: updated.selected_year,
       }));
-      
+
       return { success: true };
     } catch (error) {
       console.error('Update failed:', error);
@@ -240,14 +172,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch (_) {}
-    setUser(null);
-    setIsAuthenticated(false);
-  };
-
+  const logout = signOut;
   const navigateToLogin = () => {};
 
   return (
@@ -264,6 +189,7 @@ export const AuthProvider = ({ children }) => {
       checkAppState: fetchUser,
       signIn,
       signUp,
+      signOut,
       updateMe,
     }}>
       {children}

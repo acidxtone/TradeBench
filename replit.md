@@ -16,22 +16,22 @@ TradeBench is a quiz and study application for apprenticeship training. Users se
 ## Project Structure
 ```
 src/
-  api/           - API clients (localClient.js for offline data)
+  api/           - API clients (client.js is the unified Express API client)
   components/    - UI components (ui/ for shadcn primitives, dashboard/, quiz/, study/ for features)
   hooks/         - Custom React hooks
   lib/           - Utilities, auth context (AuthContext.jsx)
   pages/         - Page components (LandingPage, AuthPage, Dashboard, Quiz, Study, YearSelection, etc.)
   utils/         - Utility functions
 server/
-  index.ts       - Express server entry point (session setup, auth routes)
+  index.ts       - Express server entry point (session setup, auth routes, data API)
   auth.ts        - Custom email/password auth routes (register, login, logout, user)
-  db.ts          - Drizzle ORM database connection
+  data.ts        - Data API routes (questions, study guides, user progress)
+  db.ts          - Drizzle ORM database connection (pg driver)
   vite.ts        - Vite dev middleware for serving frontend
 shared/
-  schema.ts      - Combined Drizzle schema exports
-  models/auth.ts - Users (with password_hash) and sessions tables
-data/            - JSON data files for questions and study guides
-scripts/         - Data generation and migration scripts
+  schema.ts      - Drizzle schema (users, sessions, userProgress, quizSessions)
+data/            - JSON data files for questions and study guides (y1-y4)
+scripts/         - Data generation scripts
 ```
 
 ## Configuration
@@ -77,13 +77,17 @@ scripts/         - Data generation and migration scripts
 - `npm run db:push` - Push Drizzle schema to database
 
 ## Progress Tracking
-- Progress (scores, bookmarks, weak areas, streaks) is stored **per year** using year-specific localStorage keys
+- Progress (scores, bookmarks, weak areas, streaks) is stored **per year** in the database (user_progress table)
 - Switching years preserves all data — each year has independent progress
-- localClient.js uses `tradebench_user_progress_y{N}` keys (e.g. `tradebench_user_progress_y1`)
 - All progress queries include year in the queryKey: `['userProgress', selected_year]`
 - Settings "Reset Progress" only resets the current year
+- Questions and study guides are served from JSON files in data/ directory via Express API
 
 ## Recent Changes
+- 2026-02-07: Migrated from Supabase to Replit PostgreSQL with Express backend
+- 2026-02-07: Created unified API client (src/api/client.js) replacing Supabase clients
+- 2026-02-07: Created Express server with auth routes, data API, and Vite middleware
+- 2026-02-07: Created Drizzle schema (users, sessions, userProgress, quizSessions)
 - 2026-02-06: Implemented per-year progress tracking — Exam Readiness, stats, bookmarks, weak areas all tracked independently per year
 - 2026-02-06: Fixed quiz mode names alignment (Dashboard → QuizSetup → Quiz) and added missing useNavigate
 - 2026-02-06: Added server-side year persistence (selected_year column in users table, PATCH /api/auth/user endpoint)
