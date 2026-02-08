@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "name": "tradebench",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "functions": {},
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_SUPABASE_URL": "@supabase_url",
+    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "VITE_ADSENSE_PUBLISHER_ID": "@adsense_publisher_id",
+    "VITE_ADSENSE_ENABLED": "@adsense_enabled"
+  },
+  "build": {
+    "env": {
+      "VITE_SUPABASE_URL": "@supabase_url",
+      "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key",
+      "VITE_ADSENSE_PUBLISHER_ID": "@adsense_publisher_id",
+      "VITE_ADSENSE_ENABLED": "@adsense_enabled"
+    }
+  }
+}

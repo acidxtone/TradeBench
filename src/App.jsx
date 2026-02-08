@@ -6,6 +6,7 @@ import { pagesConfig } from './page.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from '@/lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { AdProvider, StickyHeaderAd, StickyFooterAd } from '@/components/ads/AdProvider';
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
@@ -78,15 +79,19 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <NavigationTracker />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <AdProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router>
+            <NavigationTracker />
+            <StickyHeaderAd />
+            <AuthenticatedApp />
+            <StickyFooterAd />
+          </Router>
+          <Toaster />
+        </QueryClientProvider>
+      </AuthProvider>
+    </AdProvider>
   )
 }
 

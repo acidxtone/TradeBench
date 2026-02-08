@@ -12,12 +12,25 @@ export default defineConfig({
     },
   },
   server: {
-    host: '0.0.0.0',
-    port: 3000,
     allowedHosts: true,
+    // Remove server proxy for Supabase compatibility
   },
   build: {
     outDir: 'dist',
     sourcemap: true,
+    // Optimize for Vercel deployment
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+        },
+      },
+    },
+  },
+  // Define global constants for build
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
   },
 })

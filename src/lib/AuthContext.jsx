@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { auth, getCurrentUser, isSupabaseMode } from '@/lib/api-client';
 
 const AuthContext = createContext();
 
@@ -11,51 +12,26 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = useCallback(async () => {
     try {
       setIsLoadingAuth(true);
-      
-      // Get current session from Supabase
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
+
+      const data = await getCurrentUser();
+
+      if (!data) {
         setUser(null);
         setIsAuthenticated(false);
         setAuthError(null);
         return null;
       }
-      
-      if (!session?.user) {
-        setUser(null);
-        setIsAuthenticated(false);
-        setAuthError(null);
-        return null;
-      }
-      
-      // Get user profile from database
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', session.user.email)
-        .single();
-        
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-        setUser(null);
-        setIsAuthenticated(false);
-        setAuthError(null);
-        return null;
-      }
-      
+
       const userObj = {
-        id: profileData.id,
-        email: session.user.email,
-        full_name: profileData.full_name || [profileData.first_name, profileData.last_name].filter(Boolean).join(' ') || session.user.email,
-        first_name: profileData.first_name,
-        last_name: profileData.last_name,
-        profile_image_url: profileData.profile_image_url,
-        selected_year: profileData.selected_year || null,
-        role: 'user',
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name || data.email,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        selected_year: data.selected_year || null,
+        role: data.role || 'user',
       };
-      
+
       setUser(userObj);
       setIsAuthenticated(true);
       setAuthError(null);
@@ -78,52 +54,24 @@ export const AuthProvider = ({ children }) => {
   const signIn = async (email, password) => {
     try {
       setAuthError(null);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        setAuthError({ type: 'auth_failed', message: error.message });
-        return { success: false, message: error.message };
-      }
-      
+
+      const data = await auth.signIn(email, password);
+
       if (!data.user) {
-        setAuthError({ type: 'auth_failed', message: 'Login failed' });
-        return { success: false, message: 'Login failed' };
+        setAuthError({ type: 'auth_failed', message: data.message || 'Sign in failed' });
+        return { success: false, message: data.message || 'Sign in failed' };
       }
-      
-      // Get or create user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: data.user.id,
-          email: data.user.email,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'merge'
-        })
-        .select()
-        .single();
-        
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        setAuthError({ type: 'profile_failed', message: profileError.message });
-        return { success: false, message: profileError.message };
-      }
-      
+
       const userObj = {
-        id: profileData.id,
-        email: data.user.email,
-        full_name: profileData.full_name || data.user.email,
-        first_name: profileData.first_name,
-        last_name: profileData.last_name,
-        profile_image_url: profileData.profile_image_url,
-        selected_year: profileData.selected_year || null,
-        role: 'user',
+        id: data.user.id || data.id,
+        email: data.user.email || data.email,
+        full_name: data.user.full_name || data.user.email || data.email,
+        first_name: data.user.first_name,
+        last_name: data.user.last_name,
+        selected_year: data.user.selected_year || data.selected_year || null,
+        role: data.user.role || data.role || 'user',
       };
-      
+
       setUser(userObj);
       setIsAuthenticated(true);
       setAuthError(null);
@@ -138,58 +86,27 @@ export const AuthProvider = ({ children }) => {
   const signUp = async (email, password, fullName, securityQuestion, securityAnswer) => {
     try {
       setAuthError(null);
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            security_question: securityQuestion,
-            security_answer: securityAnswer
-          }
-        }
-      });
-      
-      if (error) {
-        setAuthError({ type: 'signup_failed', message: error.message });
-        return { success: false, message: error.message };
-      }
-      
+
+      // For Supabase mode, we don't use security questions
+      const data = isSupabaseMode 
+        ? await auth.signUp(email, password, fullName)
+        : await auth.signUp(email, password, fullName, securityQuestion, securityAnswer);
+
       if (!data.user) {
-        setAuthError({ type: 'signup_failed', message: 'Registration failed' });
-        return { success: false, message: 'Registration failed' };
+        setAuthError({ type: 'signup_failed', message: data.message || 'Sign up failed' });
+        return { success: false, message: data.message || 'Sign up failed' };
       }
-      
-      // Create user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: data.user.email,
-          full_name: fullName,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        setAuthError({ type: 'profile_failed', message: profileError.message });
-        return { success: false, message: profileError.message };
-      }
-      
+
       const userObj = {
-        id: profileData.id,
-        email: data.user.email,
-        full_name: fullName,
-        first_name: fullName.split(' ')[0] || '',
-        last_name: fullName.split(' ').slice(1).join(' ') || '',
-        profile_image_url: profileData.profile_image_url,
-        selected_year: profileData.selected_year || null,
-        role: 'user',
+        id: data.user.id || data.id,
+        email: data.user.email || data.email,
+        full_name: data.user.full_name || data.user.email || data.email,
+        first_name: data.user.first_name,
+        last_name: data.user.last_name,
+        selected_year: data.user.selected_year || data.selected_year || null,
+        role: data.user.role || data.role || 'user',
       };
-      
+
       setUser(userObj);
       setIsAuthenticated(true);
       setAuthError(null);
@@ -203,51 +120,33 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setIsAuthenticated(false);
-      setAuthError(null);
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
+      await auth.logout();
+    } catch (_) {}
+    setUser(null);
+    setIsAuthenticated(false);
+    setAuthError(null);
   };
 
   const updateMe = async (data) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          selected_year: data.selected_year,
-          updated_at: new Date().toISOString()
-        })
-        .eq('email', user?.email);
-        
-      if (error) {
-        console.error('Profile update error:', error);
-        return { success: false, message: error.message };
+      const updated = await auth.updateMe(data);
+      
+      if (updated) {
+        setUser(prev => ({
+          ...prev,
+          selected_year: updated.selected_year,
+        }));
+        return { success: true };
+      } else {
+        return { success: false, message: 'Update failed' };
       }
-      
-      // Update local user state
-      setUser(prev => ({
-        ...prev,
-        selected_year: data.selected_year
-      }));
-      
-      return { success: true };
     } catch (error) {
       console.error('Update failed:', error);
       return { success: false, message: error.message };
     }
   };
 
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch (_) {}
-    setUser(null);
-    setIsAuthenticated(false);
-  };
-
+  const logout = signOut;
   const navigateToLogin = () => {};
 
   return (
@@ -264,6 +163,7 @@ export const AuthProvider = ({ children }) => {
       checkAppState: fetchUser,
       signIn,
       signUp,
+      signOut,
       updateMe,
     }}>
       {children}

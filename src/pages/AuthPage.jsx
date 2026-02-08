@@ -100,7 +100,7 @@ export default function AuthPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message); return; }
-      setResetQuestion(data.securityQuestion);
+      setResetQuestion(data.security_question || data.securityQuestion);
       setResetStep(2);
     } catch {
       setError('Something went wrong. Please try again.');
@@ -118,11 +118,11 @@ export default function AuthPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: resetEmail, securityAnswer: resetAnswer }),
+        body: JSON.stringify({ email: resetEmail, security_answer: resetAnswer }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message); return; }
-      setResetToken(data.resetToken);
+      setResetToken(data.reset_token || data.resetToken);
       setResetStep(3);
     } catch {
       setError('Something went wrong. Please try again.');
@@ -142,7 +142,7 @@ export default function AuthPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: resetEmail, resetToken, newPassword }),
+        body: JSON.stringify({ email: resetEmail, reset_token: resetToken, new_password: newPassword }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message); return; }

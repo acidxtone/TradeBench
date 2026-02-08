@@ -25,10 +25,18 @@ export default function YearSelection() {
 
     setSaving(true);
     try {
-      await updateMe({ selected_year: selectedYear });
+      // Try to save if user is authenticated, otherwise just navigate
+      if (user) {
+        await updateMe({ selected_year: selectedYear });
+      } else {
+        // Store in localStorage for guest users
+        localStorage.setItem('selected_year', selectedYear.toString());
+      }
       navigate(createPageUrl('Dashboard'));
     } catch (error) {
       console.error('Failed to save year selection:', error);
+      // Still navigate even if save fails
+      navigate(createPageUrl('Dashboard'));
     } finally {
       setSaving(false);
     }

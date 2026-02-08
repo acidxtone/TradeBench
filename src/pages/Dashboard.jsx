@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { api } from '@/api/supabaseDataClient';
+import { api } from '@/api/client';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -26,11 +26,14 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Get selected year from user or localStorage
+  const selectedYear = user?.selected_year || parseInt(localStorage.getItem('selected_year')) || null;
+
   useEffect(() => {
-    if (user && !user.selected_year) {
+    if (!selectedYear) {
       navigate(createPageUrl('YearSelection'));
     }
-  }, [user, navigate]);
+  }, [selectedYear, navigate]);
 
   const { data: progress } = useQuery({
     queryKey: ['userProgress', user?.id, user?.selected_year],
@@ -43,13 +46,13 @@ export default function Dashboard() {
   });
 
   const { data: questions = [] } = useQuery({
-    queryKey: ['questions', user?.selected_year],
+    queryKey: ['questions', selectedYear],
     queryFn: async () => {
-      if (!user?.selected_year) return [];
-      const results = await api.entities.Question.filter({ year: user.selected_year });
+      if (!selectedYear) return [];
+      const results = await api.entities.Question.filter({ year: selectedYear });
       return results;
     },
-    enabled: !!user?.selected_year
+    enabled: !!selectedYear
   });
 
   const quizModes = [
