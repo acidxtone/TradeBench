@@ -30,50 +30,63 @@ const DebugInfo = () => {
     };
     setEnvStatus(envCheck);
 
-    // Check database connection
-    const checkDatabase = async () => {
-      try {
-        const { data, error } = await supabase.from('questions').select('count');
-        const { data: guideData, error: guideError } = await supabase.from('study_guides').select('count');
-        
-        setDbStatus({
-          questions: error ? 'ERROR' : `${data?.length || 0} questions`,
-          studyGuides: guideError ? 'ERROR' : `${guideData?.length || 0} study guides`,
-          connection: error || guideError ? 'FAILED' : 'SUCCESS'
-        });
-      } catch (err) {
-        setDbStatus({
-          connection: 'FAILED',
-          error: err.message
-        });
-      }
-    };
+    // Only check database if environment variables are set
+    if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      // Check database connection
+      const checkDatabase = async () => {
+        try {
+          const { data, error } = await supabase.from('questions').select('count');
+          const { data: guideData, error: guideError } = await supabase.from('study_guides').select('count');
+          
+          setDbStatus({
+            questions: error ? 'ERROR' : `${data?.length || 0} questions`,
+            studyGuides: guideError ? 'ERROR' : `${guideData?.length || 0} study guides`,
+            connection: error || guideError ? 'FAILED' : 'SUCCESS'
+          });
+        } catch (err) {
+          setDbStatus({
+            connection: 'FAILED',
+            error: err.message
+          });
+        }
+      };
 
-    checkDatabase();
+      checkDatabase();
+    } else {
+      setDbStatus({
+        connection: 'SKIPPED',
+        reason: 'Environment variables not set'
+      });
+    }
   }, []);
 
-  return (
-    <div className="fixed top-4 right-4 bg-black text-white p-4 rounded-lg text-xs max-w-sm z-50">
-      <h3 className="font-bold mb-2">Debug Info</h3>
-      
-      <div className="mb-3">
-        <h4 className="font-semibold">Environment Variables:</h4>
-        <div className="text-green-400">{envStatus.supabaseUrl}</div>
-        <div className="text-green-400">{envStatus.supabaseKey}</div>
-        <div className="text-green-400">{envStatus.googleClientId}</div>
-      </div>
-      
-      <div>
-        <h4 className="font-semibold">Database Status:</h4>
-        <div className={dbStatus.connection === 'SUCCESS' ? 'text-green-400' : 'text-red-400'}>
-          {dbStatus.connection}
+  // Only show debug info in development or if there are issues
+  if (import.meta.env.DEV || dbStatus.connection === 'FAILED') {
+    return (
+      <div className="fixed top-4 right-4 bg-black text-white p-4 rounded-lg text-xs max-w-sm z-50">
+        <h3 className="font-bold mb-2">Debug Info</h3>
+        
+        <div className="mb-3">
+          <h4 className="font-semibold">Environment Variables:</h4>
+          <div className="text-green-400">{envStatus.supabaseUrl}</div>
+          <div className="text-green-400">{envStatus.supabaseKey}</div>
+          <div className="text-green-400">{envStatus.googleClientId}</div>
         </div>
-        <div className="text-blue-400">{dbStatus.questions}</div>
-        <div className="text-blue-400">{dbStatus.studyGuides}</div>
-        {dbStatus.error && <div className="text-red-400">{dbStatus.error}</div>}
+        
+        <div>
+          <h4 className="font-semibold">Database Status:</h4>
+          <div className={dbStatus.connection === 'SUCCESS' ? 'text-green-400' : 'text-red-400'}>
+            {dbStatus.connection}
+          </div>
+          <div className="text-blue-400">{dbStatus.questions}</div>
+          <div className="text-blue-400">{dbStatus.studyGuides}</div>
+          {dbStatus.error && <div className="text-red-400">{dbStatus.error}</div>}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null; // Don't render anything in production
 };
 
 const AuthenticatedApp = () => {
